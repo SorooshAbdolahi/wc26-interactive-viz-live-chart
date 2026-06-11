@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIFA World Cup 2026 – Group Stage Sankey</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.32.0/plotly.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0d1117;
+    font-family: Arial, sans-serif;
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 8px 40px;
+  }
+  #chart { width: 100%; max-width: 1400px; }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    justify-content: center;
+    max-width: 1000px;
+    margin-top: 6px;
+    padding: 0 12px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #ccc;
+  }
+  .swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div id="chart"></div>
+<div class="legend" id="legend"></div>
+<script>
+const CITY_COLORS = {
+  "Atlanta":       "#ff3333",
+  "Boston":        "#1e90ff",
+  "Dallas":        "#00c896",
+  "Guadalajara":   "#ffd700",
+  "Houston":       "#ff8c00",
+  "Kansas City":   "#9b59b6",
+  "Los Angeles":   "#00bfff",
+  "Mexico City":   "#2ecc71",
+  "Miami":         "#ff69b4",
+  "Monterrey":     "#a0522d",
+  "New York/NJ":   "#4169e1",
+  "Philadelphia":  "#adff2f",
+  "San Francisco": "#ff1493",
+  "Seattle":       "#00ced1",
+  "Toronto":       "#ff6347",
+  "Vancouver":     "#8a2be2",
+};
+const TEAM_COLOR = "#1a1a2e";
+const fixtures = [
+  ["Mexico","South Africa","Mexico City","Thu 11 Jun"],
+  ["Korea Republic","Czechia","Guadalajara","Thu 11 Jun"],
+  ["Czechia","South Africa","Atlanta","Wed 17 Jun"],
+  ["Mexico","Korea Republic","Guadalajara","Thu 18 Jun"],
+  ["South Africa","Korea Republic","Monterrey","Wed 24 Jun"],
+  ["Czechia","Mexico","Mexico City","Wed 24 Jun"],
+  ["Canada","Bosnia & Herz.","Toronto","Fri 12 Jun"],
+  ["Qatar","Switzerland","San Francisco","Sat 13 Jun"],
+  ["Canada","Qatar","Vancouver","Thu 18 Jun"],
+  ["Switzerland","Bosnia & Herz.","Los Angeles","Thu 18 Jun"],
+  ["Switzerland","Canada","Vancouver","Wed 24 Jun"],
+  ["Bosnia & Herz.","Qatar","Seattle","Wed 24 Jun"],
+  ["Brazil","Morocco","New York/NJ","Sat 13 Jun"],
+  ["Haiti","Scotland","Boston","Sat 13 Jun"],
+  ["Brazil","Haiti","Philadelphia","Fri 19 Jun"],
+  ["Scotland","Morocco","Boston","Fri 19 Jun"],
+  ["Morocco","Haiti","Atlanta","Wed 24 Jun"],
+  ["Scotland","Brazil","Miami","Wed 24 Jun"],
+  ["USA","Paraguay","Los Angeles","Fri 12 Jun"],
+  ["Australia","Türkiye","Vancouver","Sat 13 Jun"],
+  ["USA","Australia","Seattle","Fri 19 Jun"],
+  ["Türkiye","Paraguay","San Francisco","Fri 19 Jun"],
+  ["Paraguay","Australia","San Francisco","Thu 25 Jun"],
+  ["Türkiye","USA","Los Angeles","Thu 25 Jun"],
+  ["Germany","Curaçao","Houston","Sat 14 Jun"],
+  ["Côte d'Ivoire","Ecuador","Philadelphia","Sat 14 Jun"],
+  ["Germany","Côte d'Ivoire","Toronto","Sat 20 Jun"],
+  ["Ecuador","Curaçao","Kansas City","Sat 20 Jun"],
+  ["Ecuador","Germany","New York/NJ","Thu 25 Jun"],
+  ["Curaçao","Côte d'Ivoire","Philadelphia","Thu 25 Jun"],
+  ["Netherlands","Japan","Dallas","Sat 14 Jun"],
+  ["Sweden","Tunisia","Monterrey","Sat 14 Jun"],
+  ["Tunisia","Japan","Monterrey","Sat 20 Jun"],
+  ["Netherlands","Sweden","Houston","Sat 20 Jun"],
+  ["Tunisia","Netherlands","Kansas City","Thu 25 Jun"],
+  ["Japan","Sweden","Dallas","Thu 25 Jun"],
+  ["IR Iran","New Zealand","Los Angeles","Mon 15 Jun"],
+  ["Belgium","Egypt","Seattle","Mon 15 Jun"],
+  ["New Zealand","Egypt","Vancouver","Sun 21 Jun"],
+  ["Belgium","IR Iran","Los Angeles","Sun 21 Jun"],
+  ["New Zealand","Belgium","Vancouver","Thu 26 Jun"],
+  ["Egypt","IR Iran","Seattle","Thu 26 Jun"],
+  ["Spain","Cabo Verde","Atlanta","Mon 15 Jun"],
+  ["Saudi Arabia","Uruguay","Miami","Mon 15 Jun"],
+  ["Spain","Saudi Arabia","Atlanta","Sun 21 Jun"],
+  ["Uruguay","Cabo Verde","Miami","Sun 21 Jun"],
+  ["Cabo Verde","Saudi Arabia","Houston","Thu 25 Jun"],
+  ["Uruguay","Spain","Guadalajara","Thu 25 Jun"],
+  ["France","Senegal","New York/NJ","Tue 16 Jun"],
+  ["Iraq","Norway","Boston","Tue 16 Jun"],
+  ["Norway","Senegal","New York/NJ","Mon 22 Jun"],
+  ["France","Iraq","Philadelphia","Mon 22 Jun"],
+  ["Senegal","Iraq","Toronto","Fri 26 Jun"],
+  ["Norway","France","Boston","Fri 26 Jun"],
+  ["Argentina","Algeria","Kansas City","Tue 16 Jun"],
+  ["Austria","Jordan","San Francisco","Tue 16 Jun"],
+  ["Argentina","Austria","Dallas","Mon 22 Jun"],
+  ["Jordan","Algeria","San Francisco","Mon 22 Jun"],
+  ["Jordan","Argentina","Dallas","Sat 27 Jun"],
+  ["Algeria","Austria","Los Angeles","Sat 27 Jun"],
+  ["Portugal","Congo DR","Houston","Wed 17 Jun"],
+  ["Uzbekistan","Colombia","Mexico City","Wed 17 Jun"],
+  ["Portugal","Uzbekistan","Houston","Tue 23 Jun"],
+  ["Colombia","Congo DR","Guadalajara","Tue 23 Jun"],
+  ["Colombia","Portugal","Miami","Sat 27 Jun"],
+  ["Congo DR","Uzbekistan","Atlanta","Sat 27 Jun"],
+  ["England","Croatia","Dallas","Wed 17 Jun"],
+  ["Ghana","Panama","Toronto","Wed 17 Jun"],
+  ["England","Ghana","Boston","Tue 23 Jun"],
+  ["Panama","Croatia","Toronto","Tue 23 Jun"],
+  ["Panama","England","New York/NJ","Sat 27 Jun"],
+  ["Croatia","Ghana","Philadelphia","Sat 27 Jun"],
+];
+const teamSet = new Set();
+const citySet = new Set();
+fixtures.forEach(([a,b,c]) => { teamSet.add(a); teamSet.add(b); citySet.add(c); });
+const allTeams = [...teamSet].sort();
+const allCities = [...citySet].sort();
+const N_t = allTeams.length, N_c = allCities.length;
+const tL = Object.fromEntries(allTeams.map((t,i) => [t,i]));
+const cI = Object.fromEntries(allCities.map((c,i) => [c, N_t+i]));
+const tR = Object.fromEntries(allTeams.map((t,i) => [t, N_t+N_c+i]));
+const nodeLabels = [...allTeams,...allCities,...allTeams];
+const nodeColors = [...allTeams.map(()=>TEAM_COLOR),...allCities.map(c=>CITY_COLORS[c]||"#888"),...allTeams.map(()=>TEAM_COLOR)];
+const sources=[],targets=[],values=[],linkColors=[],linkLabels=[];
+function rgba(hex,a){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return `rgba(${r},${g},${b},${a})`;}
+fixtures.forEach(([teamA,teamB,city,date])=>{
+  const c=CITY_COLORS[city]||"#888888";
+  const col=rgba(c,0.45);
+  const tip=`${teamA} vs ${teamB} · ${city} · ${date}`;
+  sources.push(tL[teamA]);targets.push(cI[city]);values.push(1);linkColors.push(col);linkLabels.push(tip);
+  sources.push(cI[city]);targets.push(tR[teamB]);values.push(1);linkColors.push(col);linkLabels.push(tip);
+});
+Plotly.newPlot("chart",[{
+  type:"sankey",arrangement:"freeform",
+  node:{pad:12,thickness:18,line:{color:"#ffffff",width:0.4},label:nodeLabels,color:nodeColors,hovertemplate:"%{label}<extra></extra>"},
+  link:{source:sources,target:targets,value:values,color:linkColors,label:linkLabels,hovertemplate:"%{label}<extra></extra>"}
+}],{
+  title:{text:"<b>FIFA World Cup 2026 – Group Stage Matches</b><br><sup>Teams (left) · Host City (middle, colour-coded) · Opponents (right) · 72 matches across 16 venues</sup>",font:{size:19,color:"white"},x:0.5},
+  font:{size:10,color:"white",family:"Arial"},
+  paper_bgcolor:"#0d1117",plot_bgcolor:"#0d1117",
+  height:1100,margin:{l:10,r:10,t:110,b:10}
+},{responsive:true,displaylogo:false});
+const legendEl=document.getElementById("legend");
+Object.entries(CITY_COLORS).forEach(([city,color])=>{
+  const item=document.createElement("div");item.className="legend-item";
+  item.innerHTML=`<div class="swatch" style="background:${color}"></div>${city}`;
+  legendEl.appendChild(item);
+});
+</script>
+</body>
+</html>
